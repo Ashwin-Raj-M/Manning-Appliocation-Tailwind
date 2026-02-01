@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Attendance Entry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tailwind / Compiled Styles -->
+  <link rel="stylesheet" href="../../style/output.css" />
+</head>
+
+<body class="bg-slate-100">
+
+  <!-- =====================================================
+       PAGE TITLE
+  ====================================================== -->
+  <h1 class="text-center text-lg font-semibold text-slate-700 mb-3">
+    Attendance Entry
+  </h1>
+
+  <!-- =====================================================
+       STICKY HEADER : DATE | SHIFT | OFFICER
+  ====================================================== -->
+  <div class="sticky top-0 z-10 bg-slate-100 pb-3">
+    <div class="bg-white rounded-2xl shadow-md p-4 space-y-3">
+
+      <!-- Attendance Date -->
+      <input
+        type="date"
+        id="attendanceDate"
+        class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+      />
+
+      <!-- Shift Selection -->
+      <select
+        id="shiftSelect"
+        class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+      >
+        <option value="">Select Shift</option>
+        <option value="A">Shift A</option>
+        <option value="B">Shift B</option>
+        <option value="C">Shift C</option>
+      </select>
+
+      <!-- Shift Officer Name -->
+      <input
+        type="text"
+        id="officerName"
+        placeholder="Shift Officer Name"
+        class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+      />
+
+    </div>
+  </div>
+
+  <!-- =====================================================
+       SECTION TABS (HORIZONTAL SCROLL)
+  ====================================================== -->
+  <div class="overflow-x-auto pb-2 mb-2 mt-1">
+    <div
+      id="sectionTabs"
+      class="flex gap-2 w-max px-1"
+    >
+      <!-- Tabs injected dynamically via JS -->
+    </div>
+  </div>
+
+  <!-- =====================================================
+       TOKEN INPUT (ACTIVE SECTION)
+  ====================================================== -->
+  <div class="bg-white rounded-2xl shadow-md p-4 mb-4 space-y-2">
+
+    <div class="text-sm font-medium text-slate-700">
+      Add Token
+    </div>
+
+    <div class="flex gap-2">
+      <input
+        id="tokenInput"
+        type="number"
+        inputmode="numeric"
+        placeholder="Token Number"
+        class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"
+      />
+
+      <button
+        id="addTokenBtn"
+        class="px-4 py-2 rounded-lg
+               bg-blue-600 text-white text-sm
+               hover:bg-blue-700"
+      >
+        Add
+      </button>
+    </div>
+
+  </div>
+
+  <!-- =====================================================
+       MAIN LAYOUT : ENTRY + SUMMARY
+  ====================================================== -->
+  <div class="container flex flex-col gap-4 md:flex-row">
+
+    <!-- ================= LEFT : MAIN ENTRY ================= -->
+    <div class="entry-main flex-1">
+
+      <!-- Section Cards Grid -->
+      <div
+        id="sectionsContainer"
+        class="grid gap-4
+               grid-cols-[repeat(auto-fit,minmax(260px,1fr))]
+               section-grid"
+      >
+        <!-- Sections injected dynamically -->
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="text-center mt-5">
+
+        <!-- Mobile : View Summary -->
+        <button
+          id="openSummary"
+          class="fixed bottom-20 right-4 z-30
+                 px-4 py-2 rounded-full
+                 bg-slate-800 text-white text-sm
+                 shadow-lg md:hidden"
+        >
+          View Summary
+        </button>
+
+        <!-- Desktop : Save -->
+        <button
+          id="saveBtn"
+          class="hidden md:inline-flex
+                 px-8 py-3 rounded-xl
+                 bg-gradient-to-r from-emerald-600 to-emerald-700
+                 text-white font-medium shadow-lg
+                 hover:from-emerald-700 hover:to-emerald-800
+                 transition"
+        >
+          Save Attendance
+        </button>
+
+      </div>
+    </div>
+
+    <!-- ================= RIGHT : SUMMARY (DESKTOP) ================= -->
+    <div
+      id="summaryCard"
+      class="summary-card w-60
+             bg-white/60 backdrop-blur-xl
+             border border-white/30
+             rounded-2xl p-4 shadow-xl
+             sticky top-5 hidden md:block"
+    >
+
+      <h3 class="font-semibold mb-2">Summary</h3>
+
+      <!-- Presence -->
+      <div class="summary-row flex justify-between text-sm py-1">
+        <span>Absent</span>
+        <b id="count-absent">0</b>
+      </div>
+      <div class="summary-row flex justify-between text-sm py-1">
+        <span>Present</span>
+        <b id="count-present">0</b>
+      </div>
+
+      <hr class="my-2 border-slate-200" />
+
+      <!-- Section-wise Counts -->
+      <div class="summary-row flex justify-between text-sm py-1"><span>Roasting</span><b id="count-roasting">0</b></div>
+      <div class="summary-row flex justify-between text-sm py-1"><span>Plant</span><b id="count-plant">0</b></div>
+      <div class="summary-row flex justify-between text-sm py-1"><span>Packing</span><b id="count-packing">0</b></div>
+      <div class="summary-row flex justify-between text-sm py-1"><span>Lab</span><b id="count-lab">0</b></div>
+      <div class="summary-row flex justify-between text-sm py-1"><span>Boiler</span><b id="count-boiler">0</b></div>
+      <div class="summary-row flex justify-between text-sm py-1"><span>ETP</span><b id="count-etp">0</b></div>
+      <div class="summary-row flex justify-between text-sm py-1"><span>Pallet</span><b id="count-pallet">0</b></div>
+      <div class="summary-row flex justify-between text-sm py-1"><span>Material</span><b id="count-material">0</b></div>
+      <div class="summary-row flex justify-between text-sm py-1"><span>Electrical</span><b id="count-electrical">0</b></div>
+      <div class="summary-row flex justify-between text-sm py-1"><span>Engineering</span><b id="count-engineering">0</b></div>
+
+    </div>
+  </div>
+
+  <!-- =====================================================
+       MOBILE SUMMARY SHEET
+  ====================================================== -->
+  <div
+    id="mobileSummarySheet"
+    class="fixed inset-x-0 bottom-0 z-40
+           bg-white rounded-t-3xl shadow-2xl
+           translate-y-full transition-transform duration-300
+           md:hidden"
+  >
+
+    <div class="p-4 border-b flex justify-between items-center">
+      <h3 class="font-semibold text-slate-700">Summary</h3>
+      <button id="closeSummary" class="text-slate-500 text-xl">&times;</button>
+    </div>
+
+    <div class="p-4 space-y-2 text-sm">
+
+      <div class="flex justify-between"><span>Absent</span><b id="m-count-absent">0</b></div>
+      <div class="flex justify-between"><span>Present</span><b id="m-count-present">0</b></div>
+
+      <hr />
+
+      <div class="flex justify-between"><span>Roasting</span><b id="m-count-roasting">0</b></div>
+      <div class="flex justify-between"><span>Plant</span><b id="m-count-plant">0</b></div>
+      <div class="flex justify-between"><span>Packing</span><b id="m-count-packing">0</b></div>
+      <div class="flex justify-between"><span>Lab</span><b id="m-count-lab">0</b></div>
+      <div class="flex justify-between"><span>Boiler</span><b id="m-count-boiler">0</b></div>
+      <div class="flex justify-between"><span>ETP</span><b id="m-count-etp">0</b></div>
+      <div class="flex justify-between"><span>Pallet</span><b id="m-count-pallet">0</b></div>
+      <div class="flex justify-between"><span>Material</span><b id="m-count-material">0</b></div>
+      <div class="flex justify-between"><span>Electrical</span><b id="m-count-electrical">0</b></div>
+      <div class="flex justify-between"><span>Engineering</span><b id="m-count-engineering">0</b></div>
+
+    </div>
+  </div>
+
+  <!-- =====================================================
+       MOBILE SAVE BAR
+  ====================================================== -->
+  <div
+    id="mobileSaveBar"
+    class="fixed inset-x-0 bottom-0 z-30
+           bg-white/80 backdrop-blur-xl
+           border-t border-slate-200
+           p-3 md:hidden"
+  >
+    <button
+      id="mobileSaveBtn"
+      class="w-full py-3 rounded-xl
+             bg-gradient-to-r from-emerald-600 to-emerald-700
+             text-white font-semibold
+             shadow-lg
+             active:scale-[0.98]
+             transition"
+    >
+      Save Attendance
+    </button>
+  </div>
+
+  <!-- =====================================================
+       SCRIPT
+  ====================================================== -->
+  <script type="module" src="entry.js"></script>
+
+</body>
+</html>

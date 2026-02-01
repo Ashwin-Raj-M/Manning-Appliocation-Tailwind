@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+
+  /* ---------- GLOBAL BODY ---------- */
+  body {
+    @apply font-sans bg-slate-100 text-slate-800 m-0 p-2;
+  }
+
+  /* ---------- CONTAINER ---------- */
+  .container {
+    @apply max-w-[900px] mx-auto;
+  }
+
+  /* ---------- MAIN PAGE HEADING ---------- */
+  h1 {
+    @apply text-center text-xl font-semibold text-slate-700 mb-5;
+  }
+
+}
