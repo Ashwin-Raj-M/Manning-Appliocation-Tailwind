@@ -1,5 +1,6 @@
 import { sections } from "../../shared/constants.js";
 import { loadHistory, saveAttendance } from "../../shared/securityStorage.js";
+import { loadEmployeeIndex, getEmployeeByToken } from "../../shared/employeeIndex.js";
 
 /* ---------- PARAMS ---------- */
 const params = new URLSearchParams(location.search);
@@ -24,11 +25,20 @@ const openSummaryBtn = document.getElementById("openSummary");
 const closeSummaryBtn = document.getElementById("closeSummary");
 const mobileSummarySheet = document.getElementById("mobileSummarySheet");
 
+const employeeModal = document.getElementById("employeeModal");
+const closeEmployeeModal = document.getElementById("closeEmployeeModal");
+const empTokenEl = document.getElementById("empToken");
+const empNameEl = document.getElementById("empName");
+const empPhoneEl = document.getElementById("empPhone");
+
 /* ---------- ACTIVE SECTION ---------- */
 let activeSection = sections[0];
 
 /* ---------- DIRTY STATE (STEP 5.3) ---------- */
 let isDirty = false;
+
+/* ---------- EMPLOYEE INDEX READY ---------- */
+let employeeIndexReady = false;
 
 /* ---------- STATE ---------- */
 const sectionState = {};
@@ -98,6 +108,24 @@ function updateActiveSection() {
   tokenInput.placeholder = `Add token to ${activeSection}`;
 }
 
+/* ---------- LONG PRESS ---------- */
+function attachLongPress(el, callback, delay = 500) {
+  let timer;
+
+  const start = () => {
+    timer = setTimeout(callback, delay);
+  };
+  const cancel = () => clearTimeout(timer);
+
+  el.addEventListener("touchstart", start);
+  el.addEventListener("mousedown", start);
+
+  el.addEventListener("touchend", cancel);
+  el.addEventListener("touchmove", cancel);
+  el.addEventListener("mouseup", cancel);
+  el.addEventListener("mouseleave", cancel);
+}
+
 /* ---------- ADD TOKEN (GLOBAL INPUT) ---------- */
 function addTokenToActiveSection() {
   const token = tokenInput.value.trim();
@@ -121,6 +149,23 @@ function addTokenToActiveSection() {
     isDirty = true;
     updateSummary();
   };
+
+  // Long press to open employee modal
+  let longPressTimer;
+  const startLongPress = () => {
+    longPressTimer = setTimeout(() => {
+      openEmployeeModal(token);
+    }, 500); // 500ms for long press
+  };
+  const cancelLongPress = () => {
+    clearTimeout(longPressTimer);
+  };
+
+  chip.addEventListener("mousedown", startLongPress);
+  chip.addEventListener("mouseup", cancelLongPress);
+  chip.addEventListener("mouseleave", cancelLongPress); // Cancel if mouse leaves
+  chip.addEventListener("touchstart", startLongPress);
+  chip.addEventListener("touchend", cancelLongPress);
 
   document
     .getElementById(`chips-${activeSection}`)
@@ -231,6 +276,23 @@ if (editId) {
           updateSummary();
         };
 
+        // Long press to open employee modal
+        let longPressTimer;
+        const startLongPress = () => {
+          longPressTimer = setTimeout(() => {
+            openEmployeeModal(token);
+          }, 500); // 500ms for long press
+        };
+        const cancelLongPress = () => {
+          clearTimeout(longPressTimer);
+        };
+
+        chip.addEventListener("mousedown", startLongPress);
+        chip.addEventListener("mouseup", cancelLongPress);
+        chip.addEventListener("mouseleave", cancelLongPress); // Cancel if mouse leaves
+        chip.addEventListener("touchstart", startLongPress);
+        chip.addEventListener("touchend", cancelLongPress);
+
         document
           .getElementById(`chips-${section}`)
           .appendChild(chip);
@@ -239,6 +301,47 @@ if (editId) {
 
     updateSummary();
   }
+}
+
+/* ---------- EMPLOYEE MODAL ---------- */
+function openEmployeeModal(token) {
+  const emp = getEmployeeByToken(token);
+
+  empTokenEl.innerText = token;
+  empNameEl.innerText = emp ? emp.NAME : "Unknown";
+  empPhoneEl.innerText = emp?.["PH.NO"]?.[0] || "N/A";
+
+  employeeModal.classList.remove("hidden");
+  navigator.vibrate?.(15);
+}
+
+/* ---------- MODAL EVENTS ---------- */
+function initEmployeeModalEvents() {
+  const copyTokenBtn = document.getElementById("copyTokenBtn");
+  const copyPhoneBtn = document.getElementById("copyPhoneBtn");
+
+  if (copyTokenBtn) {
+    copyTokenBtn.onclick = async () => {
+      await navigator.clipboard.writeText(empTokenEl.innerText);
+      navigator.vibrate?.(20);
+    };
+  }
+
+  if (copyPhoneBtn) {
+    copyPhoneBtn.onclick = async () => {
+      await navigator.clipboard.writeText(empPhoneEl.innerText);
+      navigator.vibrate?.(20);
+    };
+  }
+
+  closeEmployeeModal.onclick = () =>
+    employeeModal.classList.add("hidden");
+
+  employeeModal.onclick = e => {
+    if (e.target === employeeModal) {
+      employeeModal.classList.add("hidden");
+    }
+  };
 }
 
 /* ---------- SAVE (DESKTOP + MOBILE) ---------- */
@@ -307,6 +410,22 @@ window.addEventListener("beforeunload", e => {
   if (!isDirty) return;
   e.preventDefault();
   e.returnValue = "";
+});
+
+if (mobileSaveBtn) mobileSaveBtn.onclick = () => saveBtn.click();
+
+/* ---------- EMPLOYEE DATA ---------- */
+async function initEmployees() {
+  await loadEmployeeIndex();
+  employeeIndexReady = true;
+}
+initEmployees();
+initEmployeeModalEvents();
+
+/* ---------- INIT ---------- */
+addTokenBtn.onclick = addTokenToActiveSection;
+tokenInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") addTokenToActiveSection();
 });
 
 /* ---------- INIT ---------- */
