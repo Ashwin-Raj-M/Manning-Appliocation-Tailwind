@@ -256,6 +256,10 @@ if (editId) {
     shiftSelect.value = rec.shift;
     dateInput.value = rec.date;
 
+    // Update save button text for edit mode
+    if (saveBtn) saveBtn.textContent = "Re-Save Attendance";
+    if (mobileSaveBtn) mobileSaveBtn.textContent = "Re-Save Attendance";
+
     Object.keys(rec.sections).forEach(section => {
       rec.sections[section].forEach(token => {
         sectionState[section].push(token);
