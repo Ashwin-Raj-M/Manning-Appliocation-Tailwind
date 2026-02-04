@@ -1,4 +1,4 @@
-import { sections, workstationsBySection } from "../shared/constants";
+import { sections, workstationsBySection } from "./officer-constants.js";
 
 export const state = {
   sections: {},

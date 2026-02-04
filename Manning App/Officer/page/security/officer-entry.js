@@ -1,12 +1,13 @@
-import { sections } from "../../shared/constants.js";
-import { loadHistory, saveAttendance } from "../../shared/securityStorage.js";
+import { sections, workstationsBySection } from "../../shared/officer-constants.js";
+import { loadHistory, saveAttendance } from "../../shared/officer-storage.js";
+import { loadEmployeeIndex, getEmployeeByToken } from "../../shared/officer-employee-index.js";
 
 /* ---------- PARAMS ---------- */
 const params = new URLSearchParams(location.search);
 const editId = params.get("id");
 
 /* ---------- ELEMENTS ---------- */
-const sectionsContainer = document.getElementById("sectionsContainer");
+const workstationsContainer = document.getElementById("workstationsContainer");
 const tabsContainer = document.getElementById("sectionTabs");
 const saveBtn = document.getElementById("saveBtn");
 const mobileSaveBtn = document.getElementById("mobileSaveBtn");
@@ -15,14 +16,30 @@ const officerInput = document.getElementById("officerName");
 const shiftSelect = document.getElementById("shiftSelect");
 const dateInput = document.getElementById("attendanceDate");
 
-const tokenInput = document.getElementById("tokenInput");
-const addTokenBtn = document.getElementById("addTokenBtn");
-
 const saveToast = document.getElementById("saveToast");
 
 const openSummaryBtn = document.getElementById("openSummary");
 const closeSummaryBtn = document.getElementById("closeSummary");
 const mobileSummarySheet = document.getElementById("mobileSummarySheet");
+
+/* ---------- SHIFT EDIT ELEMENTS ---------- */
+const editShiftBtn = document.getElementById("editShiftBtn");
+const shiftDisplayMode = document.getElementById("shiftDisplayMode");
+const shiftEditMode = document.getElementById("shiftEditMode");
+const editAttendanceDate = document.getElementById("editAttendanceDate");
+const editShiftSelect = document.getElementById("editShiftSelect");
+const editOfficerName = document.getElementById("editOfficerName");
+const cancelShiftEdit = document.getElementById("cancelShiftEdit");
+const saveShiftEdit = document.getElementById("saveShiftEdit");
+
+/* ---------- BUFFER MODAL ELEMENTS ---------- */
+const addToBufferBtn = document.getElementById("addToBufferBtn");
+const addToBufferModal = document.getElementById("addToBufferModal");
+const bufferModalBackdrop = document.getElementById("bufferModalBackdrop");
+const bufferTokenInput = document.getElementById("bufferTokenInput");
+const cancelAddToBuffer = document.getElementById("cancelAddToBuffer");
+const confirmAddToBuffer = document.getElementById("confirmAddToBuffer");
+const bufferContainer = document.getElementById("bufferContainer");
 
 /* ---------- ACTIVE SECTION ---------- */
 let activeSection = sections[0];
@@ -32,7 +49,15 @@ let isDirty = false;
 
 /* ---------- STATE ---------- */
 const sectionState = {};
-sections.forEach(s => (sectionState[s] = []));
+const workstationState = {};
+
+sections.forEach(section => {
+  sectionState[section] = [];
+  workstationState[section] = {};
+  (workstationsBySection[section] || []).forEach(ws => {
+    workstationState[section][ws] = [];
+  });
+});
 
 /* ---------- SUMMARY MAP ---------- */
 const summaryMap = {
@@ -66,28 +91,9 @@ sections.forEach(section => {
   tabsContainer.appendChild(tab);
 });
 
-/* ---------- RENDER SECTIONS (DISPLAY ONLY) ---------- */
-sections.forEach(section => {
-  const box = document.createElement("div");
-  box.className =
-    "section bg-white rounded-2xl p-4 shadow-md";
-  box.dataset.section = section;
-
-  box.innerHTML = `
-    <h3 class="text-slate-700 font-medium mb-2">${section}</h3>
-    <div class="token-chips flex flex-wrap gap-2 mb-2" id="chips-${section}"></div>
-  `;
-
-  sectionsContainer.appendChild(box);
-});
-
 /* ---------- ACTIVE SECTION VISIBILITY ---------- */
 function updateActiveSection() {
-  document.querySelectorAll(".section").forEach(sec => {
-    sec.style.display =
-      sec.dataset.section === activeSection ? "block" : "none";
-  });
-
+  // Update tab styling
   document.querySelectorAll("#sectionTabs button").forEach(btn => {
     btn.className =
       btn.dataset.section === activeSection
@@ -95,48 +101,45 @@ function updateActiveSection() {
         : "px-4 py-2 rounded-full text-sm whitespace-nowrap bg-slate-200 text-slate-700";
   });
 
-  tokenInput.placeholder = `Add token to ${activeSection}`;
+  // Clear existing workstations
+  workstationsContainer.innerHTML = "";
+
+  // Get workstations for active section
+  const workstations = workstationsBySection[activeSection] || [];
+
+  // Create workstation boxes
+  workstations.forEach(workstation => {
+    const workstationBox = document.createElement("div");
+    workstationBox.className = "bg-white rounded-2xl shadow-md p-4";
+    workstationBox.innerHTML = `
+      <div class="text-sm font-medium text-slate-700 mb-2">${workstation}</div>
+      <div id="workstation-${workstation.replace(/\s+/g, '-').toLowerCase()}" class="space-y-2 min-h-[60px]">
+        <!-- Tokens will be added here -->
+      </div>
+    `;
+    workstationsContainer.appendChild(workstationBox);
+
+    // Populate with existing tokens
+    const container = workstationBox.querySelector(`#workstation-${workstation.replace(/\s+/g, '-').toLowerCase()}`);
+    const tokens = workstationState[activeSection][workstation] || [];
+    tokens.forEach(token => {
+      const chip = document.createElement("div");
+      chip.className = "px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700 flex items-center gap-1";
+      chip.innerHTML = `${token} <span>&times;</span>`;
+      chip.querySelector("span").className = "cursor-pointer font-bold ml-1";
+      chip.querySelector("span").onclick = () => {
+        // Remove from workstation state
+        workstationState[activeSection][workstation] = workstationState[activeSection][workstation].filter(t => t !== token);
+        // Also remove from section state
+        sectionState[activeSection] = sectionState[activeSection].filter(t => t !== token);
+        chip.remove();
+        isDirty = true;
+        updateSummary();
+      };
+      container.appendChild(chip);
+    });
+  });
 }
-
-/* ---------- ADD TOKEN (GLOBAL INPUT) ---------- */
-function addTokenToActiveSection() {
-  const token = tokenInput.value.trim();
-  if (!token) return;
-
-  sectionState[activeSection].push(token);
-  isDirty = true;
-
-  const chip = document.createElement("div");
-  chip.className =
-    "px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700 flex items-center gap-1";
-  chip.innerHTML = `${token} <span>&times;</span>`;
-
-  chip.querySelector("span").className =
-    "cursor-pointer font-bold ml-1";
-
-  chip.querySelector("span").onclick = () => {
-    sectionState[activeSection] =
-      sectionState[activeSection].filter(t => t !== token);
-    chip.remove();
-    isDirty = true;
-    updateSummary();
-  };
-
-  document
-    .getElementById(`chips-${activeSection}`)
-    .appendChild(chip);
-
-  tokenInput.value = "";
-  tokenInput.focus();
-  updateSummary();
-}
-
-/* ---------- TOKEN INPUT EVENTS ---------- */
-addTokenBtn.onclick = addTokenToActiveSection;
-
-tokenInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") addTokenToActiveSection();
-});
 
 /* ---------- SUMMARY LOGIC ---------- */
 function updateSummary() {
@@ -207,9 +210,9 @@ if (editId) {
   const rec = history[editId];
 
   if (rec) {
-    officerInput.value = rec.officerName;
-    shiftSelect.value = rec.shift;
-    dateInput.value = rec.date;
+    officerInput.textContent = rec.officerName;
+    shiftSelect.textContent = rec.shift;
+    dateInput.textContent = rec.date;
 
     Object.keys(rec.sections).forEach(section => {
       rec.sections[section].forEach(token => {
@@ -243,16 +246,16 @@ if (editId) {
 
 /* ---------- SAVE (DESKTOP + MOBILE) ---------- */
 saveBtn.onclick = () => {
-  if (!dateInput.value || !shiftSelect.value || !officerInput.value) {
+  if (!dateInput.textContent || !shiftSelect.textContent || !officerInput.textContent) {
     alert("Date, shift and officer name are required");
     return;
   }
 
 saveAttendance({
   id: editId,
-  date: dateInput.value,
-  shift: shiftSelect.value,
-  officerName: officerInput.value,
+  date: dateInput.textContent,
+  shift: shiftSelect.textContent,
+  officerName: officerInput.textContent,
   sections: sectionState,
   counts: {
     present: Number(summaryMap.present.innerText),
@@ -287,7 +290,7 @@ saveAttendance({
   }
 
   setTimeout(() => {
-    location.href = "landing.html";
+    location.href = "officer-landing.html";
   }, 600);
 };
 
@@ -297,11 +300,8 @@ if (mobileSaveBtn) {
 }
 
 /* ---------- UNSAVED CHANGES GUARD (STEP 5.3) ---------- */
-[dateInput, shiftSelect, officerInput].forEach(el => {
-  el.addEventListener("change", () => {
-    isDirty = true;
-  });
-});
+/* Note: Shift details are display-only, populated by security.
+   Only token changes affect the dirty state. */
 
 window.addEventListener("beforeunload", e => {
   if (!isDirty) return;
@@ -309,7 +309,128 @@ window.addEventListener("beforeunload", e => {
   e.returnValue = "";
 });
 
+/* ---------- SHIFT EDIT INLINE FUNCTIONS ---------- */
+function openShiftEditMode() {
+  // Populate edit inputs with current values
+  if (editAttendanceDate && dateInput) {
+    // Convert display date back to input format
+    const currentDate = new Date(dateInput.textContent);
+    editAttendanceDate.value = currentDate.toISOString().split('T')[0];
+  }
+  if (editShiftSelect && shiftSelect) {
+    editShiftSelect.value = shiftSelect.textContent;
+  }
+  if (editOfficerName && officerInput) {
+    editOfficerName.value = officerInput.textContent;
+  }
+
+  // Switch to edit mode
+  shiftDisplayMode.classList.add("hidden");
+  shiftEditMode.classList.remove("hidden");
+}
+
+function closeShiftEditMode() {
+  // Switch back to display mode
+  shiftEditMode.classList.add("hidden");
+  shiftDisplayMode.classList.remove("hidden");
+}
+
+function saveShiftChanges() {
+  // Update display values
+  if (editAttendanceDate && dateInput) {
+    const selectedDate = new Date(editAttendanceDate.value);
+    dateInput.textContent = selectedDate.toLocaleDateString();
+  }
+  if (editShiftSelect && shiftSelect) {
+    shiftSelect.textContent = editShiftSelect.value;
+  }
+  if (editOfficerName && officerInput) {
+    officerInput.textContent = editOfficerName.value;
+  }
+
+  // Switch back to display mode
+  closeShiftEditMode();
+}
+
+/* ---------- SHIFT EDIT EVENT LISTENERS ---------- */
+if (editShiftBtn) {
+  editShiftBtn.onclick = openShiftEditMode;
+}
+
+if (cancelShiftEdit) {
+  cancelShiftEdit.onclick = closeShiftEditMode;
+}
+
+if (saveShiftEdit) {
+  saveShiftEdit.onclick = saveShiftChanges;
+}
+
+/* ---------- BUFFER MODAL FUNCTIONS ---------- */
+function openBufferModal() {
+  bufferTokenInput.value = "";
+  bufferTokenInput.focus();
+  addToBufferModal.classList.remove("hidden");
+}
+
+function closeBufferModal() {
+  addToBufferModal.classList.add("hidden");
+}
+
+function addTokenToBuffer() {
+  const token = bufferTokenInput.value.trim();
+  if (!token) return;
+
+  // Create token chip
+  const chip = document.createElement("div");
+  chip.className =
+    "px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700 flex items-center gap-1";
+  chip.innerHTML = `${token} <span>&times;</span>`;
+
+  chip.querySelector("span").className =
+    "cursor-pointer font-bold ml-1";
+
+  chip.querySelector("span").onclick = () => {
+    chip.remove();
+    isDirty = true;
+  };
+
+  bufferContainer.appendChild(chip);
+  bufferTokenInput.value = "";
+  closeBufferModal();
+  isDirty = true;
+}
+
+/* ---------- BUFFER MODAL EVENT LISTENERS ---------- */
+if (addToBufferBtn) {
+  addToBufferBtn.onclick = openBufferModal;
+}
+
+if (cancelAddToBuffer) {
+  cancelAddToBuffer.onclick = closeBufferModal;
+}
+
+if (confirmAddToBuffer) {
+  confirmAddToBuffer.onclick = addTokenToBuffer;
+}
+
+// Close buffer modal when clicking backdrop
+if (bufferModalBackdrop) {
+  bufferModalBackdrop.onclick = closeBufferModal;
+}
+
+// Handle Enter key in buffer token input
+if (bufferTokenInput) {
+  bufferTokenInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") addTokenToBuffer();
+  });
+}
+
 /* ---------- INIT ---------- */
 updateActiveSection();
 updateSummary(); // ensure initial state is correct
+
+/* ---------- TEMPORARY SHIFT DATA ---------- */
+if (officerInput) officerInput.textContent = "Ashwin Raj M";
+if (shiftSelect) shiftSelect.textContent = "A";
+if (dateInput) dateInput.textContent = new Date().toLocaleDateString();
 

@@ -1,4 +1,4 @@
-const HISTORY_KEY = "SECURITY_ATTENDANCE_HISTORY";
+const HISTORY_KEY = "OFFICER_ATTENDANCE_HISTORY";
 
 /* ---------- LOAD ---------- */
 export function loadHistory() {

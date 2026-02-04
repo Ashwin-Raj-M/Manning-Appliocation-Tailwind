@@ -1,11 +1,11 @@
-import { loadHistory, deleteAttendance } from "../../shared/securityStorage.js";
+import { loadHistory, deleteAttendance } from "../../shared/officer-storage.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
   /* ---------- AUTH CHECK ---------- */
   const auth = JSON.parse(localStorage.getItem("SECURITY_AUTH"));
   if (!auth) {
-    location.href = "login.html";
+    location.href = "officer-login.html";
     return;
   }
 
@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!confirmLogout) return;
 
     localStorage.removeItem("SECURITY_AUTH");
-    location.href = "login.html";
+    location.href = "officer-login.html";
   });
 
 
@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         /* EDIT */
-        location.href = `entry.html?id=${rec.id}`;
+        location.href = `officer-entry.html?id=${rec.id}`;
       });
 
       historyList.appendChild(card);
@@ -259,7 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ---------- ADD NEW ---------- */
   addBtn.addEventListener("click", () => {
-    location.href = "entry.html";
+    location.href = "officer-entry.html";
   });
 
   render();

@@ -1,12 +1,10 @@
 export const sections = [
     "Roasting",
     "Plant",
-    "Plant Absent Coverage",
     "Lab",
     "Boiler",
     "ETP",
     "Packing",
-    "Packing Absent Coverage",
     "Pallet Operating",
     "Material Handling",
     "Electrical",
@@ -20,7 +18,6 @@ export const workstationsBySection = {
         "Operator",
         "Dumper"
     ],
-
     "Plant": [
         "Extractor A",
         "Extractor B",
@@ -34,16 +31,13 @@ export const workstationsBySection = {
         "10th Man",
         "Powder Collection"
     ],
-
-    "Plant Absent Coverage": [],
-    "Lab": [],
+    "Lab": ["Lab"],
     "Boiler": ["Operator", "Assistant"],
-    "ETP": [],
+    "ETP": ["ETP", "RO"],
     "Packing": ["TT07", "16/32", "IC Dumper", "AH", "GP", "CC Dumper", "QC"],
-    "Packing Absent Coverage": [],
-    "Pallet Operating": [],
-    "Material Handling": [],
-    "Electrical": [],
-    "Engineering": [],
-    "Absent": []
+    "Pallet Operating": ["Pallet Operating"],
+    "Material Handling": ["MH"],
+    "Electrical": ["Electrical"],
+    "Engineering": ["Engineering"],
+    "Absent": ["Absent"]
 };

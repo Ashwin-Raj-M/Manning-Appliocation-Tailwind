@@ -14,5 +14,5 @@ document.getElementById("loginBtn").onclick = () => {
     loginAt: new Date().toISOString()
   }));
 
-  location.href = "landing.html";
+  location.href = "officer-landing.html";
 };
