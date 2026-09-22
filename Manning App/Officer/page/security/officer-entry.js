@@ -41,15 +41,29 @@ const cancelAddToBuffer = document.getElementById("cancelAddToBuffer");
 const confirmAddToBuffer = document.getElementById("confirmAddToBuffer");
 const bufferContainer = document.getElementById("bufferContainer");
 
+console.log('Containers found:', { unassignedContainer, bufferContainer });
+
 /* ---------- ACTIVE SECTION ---------- */
 let activeSection = sections[0];
 
 /* ---------- DIRTY STATE (STEP 5.3) ---------- */
 let isDirty = false;
 
+/* ---------- HELPER FUNCTIONS ---------- */
+// Helper function to create safe CSS selector from workstation name
+function createWorkstationId(workstation) {
+  return workstation
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/[^a-zA-Z0-9\-_]/g, match => '\\' + match) // Escape special characters
+    .toLowerCase();
+}
+
 /* ---------- STATE ---------- */
 const sectionState = {};
 const workstationState = {};
+
+console.log('Sections:', sections);
+console.log('SectionState before init:', sectionState);
 
 sections.forEach(section => {
   sectionState[section] = [];
@@ -58,6 +72,8 @@ sections.forEach(section => {
     workstationState[section][ws] = [];
   });
 });
+
+console.log('SectionState after init:', sectionState);
 
 /* ---------- SUMMARY MAP ---------- */
 const summaryMap = {
@@ -113,52 +129,42 @@ function updateActiveSection() {
     workstationBox.className = "bg-white rounded-2xl shadow-md p-4";
     workstationBox.innerHTML = `
       <div class="text-sm font-medium text-slate-700 mb-2">${workstation}</div>
-      <div id="workstation-${workstation.replace(/\s+/g, '-').toLowerCase()}" class="space-y-2 min-h-[60px]">
+      <div id="workstation-${createWorkstationId(workstation)}" class="space-y-2 min-h-[60px]">
         <!-- Tokens will be added here -->
       </div>
     `;
     workstationsContainer.appendChild(workstationBox);
 
     // Populate with existing tokens
-    const container = workstationBox.querySelector(`#workstation-${workstation.replace(/\s+/g, '-').toLowerCase()}`);
+    const container = workstationBox.querySelector(`#workstation-${createWorkstationId(workstation)}`);
+    // Make workstation droppable
+    makeDroppable(container, token => {
+      removeTokenEverywhere(token);
+
+      sectionState[activeSection].push(token);
+      workstationState[activeSection][workstation].push(token);
+
+      container.appendChild(createDraggableToken(token));
+    });
     const tokens = workstationState[activeSection][workstation] || [];
     tokens.forEach(token => {
-      const chip = document.createElement("div");
-      chip.className = "px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700 flex items-center gap-1";
-      chip.innerHTML = `${token} <span>&times;</span>`;
-      chip.querySelector("span").className = "cursor-pointer font-bold ml-1";
-      chip.querySelector("span").onclick = () => {
-        // Remove from workstation state
-        workstationState[activeSection][workstation] = workstationState[activeSection][workstation].filter(t => t !== token);
-        // Also remove from section state
-        sectionState[activeSection] = sectionState[activeSection].filter(t => t !== token);
-        chip.remove();
-        isDirty = true;
-        updateSummary();
-      };
-      container.appendChild(chip);
+      container.appendChild(createDraggableToken(token));
     });
+
   });
 }
 
 /* ---------- SUMMARY LOGIC ---------- */
 function updateSummary() {
   let present = 0;
-  let absent = sectionState["Absent"].length;
+  let absent = sectionState["Absent"] ? sectionState["Absent"].length : 0;
 
-  const roasting = 
-    sectionState["Roasting"].length;
-
-  const plant =
-    sectionState["Plant"].length +
-    sectionState["Plant Absent Coverage"].length;
-
-  const packing =
-    sectionState["Packing"].length +
-    sectionState["Packing Absent Coverage"].length;
+  const roasting = sectionState["Roasting"] ? sectionState["Roasting"].length : 0;
+  const plant = sectionState["Plant"] ? sectionState["Plant"].length : 0;
+  const packing = sectionState["Packing"] ? sectionState["Packing"].length : 0;
 
   sections.forEach(sec => {
-    if (sec !== "Absent") present += sectionState[sec].length;
+    if (sec !== "Absent") present += sectionState[sec] ? sectionState[sec].length : 0;
   });
 
   // Desktop
@@ -167,13 +173,13 @@ function updateSummary() {
   summaryMap.absent.innerText = absent;
   summaryMap.plant.innerText = plant;
   summaryMap.packing.innerText = packing;
-  summaryMap.lab.innerText = sectionState["Lab"].length;
-  summaryMap.boiler.innerText = sectionState["Boiler"].length;
-  summaryMap.etp.innerText = sectionState["ETP"].length;
-  summaryMap.pallet.innerText = sectionState["Pallet Operating"].length;
-  summaryMap.material.innerText = sectionState["Material Handling"].length;
-  summaryMap.electrical.innerText = sectionState["Electrical"].length;
-  summaryMap.engineering.innerText = sectionState["Engineering"].length;
+  summaryMap.lab.innerText = sectionState["Lab"] ? sectionState["Lab"].length : 0;
+  summaryMap.boiler.innerText = sectionState["Boiler"] ? sectionState["Boiler"].length : 0;
+  summaryMap.etp.innerText = sectionState["ETP"] ? sectionState["ETP"].length : 0;
+  summaryMap.pallet.innerText = sectionState["Pallet Operating"] ? sectionState["Pallet Operating"].length : 0;
+  summaryMap.material.innerText = sectionState["Material Handling"] ? sectionState["Material Handling"].length : 0;
+  summaryMap.electrical.innerText = sectionState["Electrical"] ? sectionState["Electrical"].length : 0;
+  summaryMap.engineering.innerText = sectionState["Engineering"] ? sectionState["Engineering"].length : 0;
 
   // Mobile
   document.getElementById("m-count-roasting").innerText = roasting;
@@ -181,13 +187,13 @@ function updateSummary() {
   document.getElementById("m-count-absent").innerText = absent;
   document.getElementById("m-count-plant").innerText = plant;
   document.getElementById("m-count-packing").innerText = packing;
-  document.getElementById("m-count-lab").innerText = sectionState["Lab"].length;
-  document.getElementById("m-count-boiler").innerText = sectionState["Boiler"].length;
-  document.getElementById("m-count-etp").innerText = sectionState["ETP"].length;
-  document.getElementById("m-count-pallet").innerText = sectionState["Pallet Operating"].length;
-  document.getElementById("m-count-material").innerText = sectionState["Material Handling"].length;
-  document.getElementById("m-count-electrical").innerText = sectionState["Electrical"].length;
-  document.getElementById("m-count-engineering").innerText = sectionState["Engineering"].length;
+  document.getElementById("m-count-lab").innerText = sectionState["Lab"] ? sectionState["Lab"].length : 0;
+  document.getElementById("m-count-boiler").innerText = sectionState["Boiler"] ? sectionState["Boiler"].length : 0;
+  document.getElementById("m-count-etp").innerText = sectionState["ETP"] ? sectionState["ETP"].length : 0;
+  document.getElementById("m-count-pallet").innerText = sectionState["Pallet Operating"] ? sectionState["Pallet Operating"].length : 0;
+  document.getElementById("m-count-material").innerText = sectionState["Material Handling"] ? sectionState["Material Handling"].length : 0;
+  document.getElementById("m-count-electrical").innerText = sectionState["Electrical"] ? sectionState["Electrical"].length : 0;
+  document.getElementById("m-count-engineering").innerText = sectionState["Engineering"] ? sectionState["Engineering"].length : 0;
 }
 
 if (openSummaryBtn) {
@@ -208,38 +214,25 @@ if (closeSummaryBtn) {
 if (editId) {
   const history = loadHistory();
   const rec = history[editId];
-
   if (rec) {
+    // Populate shift header (read-only on officer page)
     officerInput.textContent = rec.officerName;
     shiftSelect.textContent = rec.shift;
     dateInput.textContent = rec.date;
 
+    // Clear Unassigned first (safety for edit mode)
+    unassignedContainer.innerHTML = "";
+
+    // Load ALL tokens into Unassigned
     Object.keys(rec.sections).forEach(section => {
       rec.sections[section].forEach(token => {
-        sectionState[section].push(token);
-
-        const chip = document.createElement("div");
-        chip.className =
-          "px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700 flex items-center gap-1";
-        chip.innerHTML = `${token} <span>&times;</span>`;
-
-        chip.querySelector("span").className =
-          "cursor-pointer font-bold ml-1";
-
-        chip.querySelector("span").onclick = () => {
-          sectionState[section] =
-            sectionState[section].filter(t => t !== token);
-          chip.remove();
-          isDirty = true;
-          updateSummary();
-        };
-
-        document
-          .getElementById(`chips-${section}`)
-          .appendChild(chip);
+        unassignedContainer.appendChild(
+          createDraggableToken(token)
+        );
       });
     });
 
+    // Summary must start from zero
     updateSummary();
   }
 }
@@ -261,23 +254,23 @@ saveAttendance({
     present: Number(summaryMap.present.innerText),
     absent: Number(summaryMap.absent.innerText),
 
-    roasting: sectionState["Roasting"].length,
+    roasting: sectionState["Roasting"] ? sectionState["Roasting"].length : 0,
 
     plant:
-      sectionState["Plant"].length +
-      sectionState["Plant Absent Coverage"].length,
+      (sectionState["Plant"] ? sectionState["Plant"].length : 0) +
+      (sectionState["Plant Absent Coverage"] ? sectionState["Plant Absent Coverage"].length : 0),
 
     packing:
-      sectionState["Packing"].length +
-      sectionState["Packing Absent Coverage"].length,
+      (sectionState["Packing"] ? sectionState["Packing"].length : 0) +
+      (sectionState["Packing Absent Coverage"] ? sectionState["Packing Absent Coverage"].length : 0),
 
-    lab: sectionState["Lab"].length,
-    boiler: sectionState["Boiler"].length,
-    etp: sectionState["ETP"].length,
-    pallet: sectionState["Pallet Operating"].length,
-    material: sectionState["Material Handling"].length,
-    electrical: sectionState["Electrical"].length,
-    engineering: sectionState["Engineering"].length
+    lab: sectionState["Lab"] ? sectionState["Lab"].length : 0,
+    boiler: sectionState["Boiler"] ? sectionState["Boiler"].length : 0,
+    etp: sectionState["ETP"] ? sectionState["ETP"].length : 0,
+    pallet: sectionState["Pallet Operating"] ? sectionState["Pallet Operating"].length : 0,
+    material: sectionState["Material Handling"] ? sectionState["Material Handling"].length : 0,
+    electrical: sectionState["Electrical"] ? sectionState["Electrical"].length : 0,
+    engineering: sectionState["Engineering"] ? sectionState["Engineering"].length : 0
   }
 });
 
@@ -424,6 +417,101 @@ if (bufferTokenInput) {
     if (e.key === "Enter") addTokenToBuffer();
   });
 }
+
+/* draggable token creation */
+
+function createDraggableToken(token) {
+  const chip = document.createElement("div");
+  chip.className =
+    "px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700 " +
+    "flex items-center justify-between gap-2 cursor-move select-none";
+
+  chip.draggable = true;
+  chip.dataset.token = token;
+
+  chip.innerHTML = `
+    <span>${token}</span>
+    <span class="font-bold cursor-pointer">&times;</span>
+  `;
+
+  // Drag start
+  chip.addEventListener("dragstart", e => {
+    e.dataTransfer.setData("text/plain", token);
+    e.dataTransfer.effectAllowed = "move";
+    chip.classList.add("opacity-50");
+  });
+
+  chip.addEventListener("dragend", () => {
+    chip.classList.remove("opacity-50");
+  });
+
+  // Remove (×)
+  chip.querySelector("span:last-child").onclick = () => {
+    removeTokenEverywhere(token);
+    chip.remove();
+    updateSummary();
+    isDirty = true;
+  };
+
+  return chip;
+}
+
+/* ---------- REMOVE TOKEN EVERYWHERE FUNCTION ---------- */
+
+function removeTokenEverywhere(token) {
+  // Remove from sectionState
+  Object.keys(sectionState).forEach(sec => {
+    sectionState[sec] = sectionState[sec].filter(t => t !== token);
+  });
+
+  // Remove from workstationState
+  Object.keys(workstationState).forEach(sec => {
+    Object.keys(workstationState[sec]).forEach(ws => {
+      workstationState[sec][ws] =
+        workstationState[sec][ws].filter(t => t !== token);
+    });
+  });
+
+  // Remove from UI
+  document.querySelectorAll(`[data-token="${token}"]`)
+    .forEach(el => el.remove());
+}
+
+/* ---------- MAKE WORKSTATIONS DROPPABLE ---------- */
+
+function makeDroppable(container, onDrop) {
+  container.addEventListener("dragover", e => {
+    e.preventDefault();
+    container.classList.add("bg-blue-50", "border-2", "border-blue-300");
+  });
+
+  container.addEventListener("dragleave", () => {
+    container.classList.remove("bg-blue-50", "border-2", "border-blue-300");
+  });
+
+  container.addEventListener("drop", e => {
+    e.preventDefault();
+    container.classList.remove("bg-blue-50", "border-2", "border-blue-300");
+
+    const token = e.dataTransfer.getData("text/plain");
+    if (!token) return;
+
+    onDrop(token);
+    isDirty = true;
+    updateSummary();
+  });
+}
+
+
+makeDroppable(unassignedContainer, token => {
+  removeTokenEverywhere(token);
+  unassignedContainer.appendChild(createDraggableToken(token));
+});
+
+makeDroppable(bufferContainer, token => {
+  removeTokenEverywhere(token);
+  bufferContainer.appendChild(createDraggableToken(token));
+});
 
 /* ---------- INIT ---------- */
 updateActiveSection();

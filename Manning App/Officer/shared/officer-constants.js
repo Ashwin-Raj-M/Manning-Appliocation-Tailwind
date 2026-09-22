@@ -34,7 +34,7 @@ export const workstationsBySection = {
     "Lab": ["Lab"],
     "Boiler": ["Operator", "Assistant"],
     "ETP": ["ETP", "RO"],
-    "Packing": ["TT07", "16/32", "IC Dumper", "AH", "GP", "CC Dumper", "QC"],
+    "Packing": ["TT07", "16/32", "Dumping", "AH", "GP", "Grainding", "QC", "Palletizer"],
     "Pallet Operating": ["Pallet Operating"],
     "Material Handling": ["MH"],
     "Electrical": ["Electrical"],

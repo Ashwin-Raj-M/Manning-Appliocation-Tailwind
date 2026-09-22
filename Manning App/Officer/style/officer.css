@@ -258,3 +258,32 @@ input.invalid {
 .summary-card hr {
   margin: 8px 0;
 } */
+
+/* Mobile Drag and Drop Styles */
+.drop-zone {
+  transition: background-color 0.2s ease, border 0.2s ease;
+}
+
+.drop-zone.bg-blue-50 {
+  background-color: #eff6ff !important;
+  border: 2px dashed #3b82f6 !important;
+}
+
+/* Prevent text selection during drag */
+.select-none {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  .cursor-move {
+    cursor: default;
+  }
+
+  .drop-zone:hover {
+    background-color: transparent;
+  }
+}
